@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova — Unified AI Assistant</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <style>
+    :root {
+      --bg0:#090c14; --bg1:#0f1320; --bg2:#171d2e; --bg3:#1d2640; --bg4:#242f4d; --line:#2c3757; --line2:#334767;
+      --text:#edf3ff; --muted:#8ca3cc; --dim:#5e7297; --accent:#5b8fff; --accent2:#3d6ee0; --green:#3ecf8e; --amber:#f4b942; --red:#e05c6b; --purple:#a78bfa; --cyan:#4dd8ff; --shadow:0 25px 70px rgba(0,0,0,.56);
+      --font:'Inter','Segoe UI',sans-serif; --mono:'JetBrains Mono','SFMono-Regular',monospace;
+      --radius:14px; --radius-sm:10px
+    }
+    *{box-sizing:border-box;margin:0;padding:0} html,body{height:100%;font-family:var(--font);overflow:hidden;background:var(--bg0);color:var(--text)}
+    body{font-size:14px;line-height:1.6}
+    button,input,textarea,select{font:inherit} button{cursor:pointer}
+    .app{display:grid;grid-template-columns:76px 220px 1fr;height:100vh;overflow:hidden;background:var(--bg0)}
+
+    .rail{background:rgba(15,19,32,.97);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:14px 0 12px;gap:8px}
+    .logo{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:18px;font-weight:700;box-shadow:0 0 24px rgba(91,143,255,.18)}
+    .rail-btn{width:44px;height:44px;border-radius:12px;border:1px solid transparent;background:transparent;display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--dim);transition:all .12s ease}
+    .rail-btn:hover{background:var(--bg2);color:var(--text)}
+    .rail-btn.active{background:rgba(91,143,255,.12);border-color:rgba(91,143,255,.22);color:var(--accent)}
+    .rail-spacer{flex:1}
+    .rail-sep{width:36px;height:1px;background:var(--line);margin:8px 0}
+
+    .sidebar{background:rgba(15,19,32,.97);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+    .sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--line)}
+    .sb-title{font-size:15px;font-weight:700;letter-spacing:-.02em}.sb-title em{font-style:normal;color:var(--accent)}
+    .sb-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .sb-scroll{flex:1;overflow-y:auto;padding:8px 7px 10px}
+    .sb-scroll::-webkit-scrollbar,.content::-webkit-scrollbar,.messages::-webkit-scrollbar,.chat-list::-webkit-scrollbar{width:4px;height:4px}.sb-scroll::-webkit-scrollbar-thumb,.content::-webkit-scrollbar-thumb,.messages::-webkit-scrollbar-thumb,.chat-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+    .sb-section{padding:10px 8px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:700}
+    .sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;border:1px solid transparent;color:var(--muted);transition:all .12s ease;font-size:13px;cursor:pointer}
+    .sb-item:hover{background:var(--bg2);color:var(--text)}
+    .sb-item.active{background:var(--bg3);border-color:var(--line2);color:var(--text)}
+    .sb-item .icon{font-size:15px;flex-shrink:0}
+    .sb-item .label{flex:1}
+    .sb-item .badge{font-size:9.5px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:10px;font-weight:700}
+    .new-chat-btn{margin:10px 10px 6px;background:var(--bg2);border:1px dashed var(--line2);padding:8px 10px;border-radius:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px}
+    .new-chat-btn:hover{background:var(--bg3);border-color:var(--accent);color:var(--text)}
+    .chat-list{display:flex;flex-direction:column;gap:3px;padding:4px 6px 6px;overflow:auto}
+    .chat-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;border:1px solid transparent;color:var(--muted);cursor:pointer;transition:all .12s ease;position:relative}
+    .chat-item:hover{background:var(--bg2);color:var(--text)}
+    .chat-item.active{background:var(--bg3);border-color:var(--line2);color:var(--text)}
+    .chat-item .title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+    .chat-item .close{opacity:0;transition:opacity .12s ease;color:var(--dim)}
+    .chat-item:hover .close{opacity:1}
+    .chat-item .close:hover{color:var(--red)}
+
+    .sidebar-footer{padding:12px;border-top:1px solid var(--line);background:rgba(15,19,32,.9)}
+    .mini-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:700;margin-bottom:8px}
+    .field{display:flex;flex-direction:column;gap:5px}
+    .field label{font-size:11px;color:var(--muted)}
+    .sf-input{background:var(--bg0);border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px;outline:none;width:100%}
+    .sf-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,143,255,.14)}
+    .api-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:10px}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+    .status-dot.live{background:var(--green);box-shadow:0 0 7px rgba(62,207,142,.7)}
+
+    .main{display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse at 70% -10%, rgba(60,90,180,.15), transparent 30%), var(--bg0)}
+    .topbar{height:56px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:12px;background:rgba(9,12,20,.72);backdrop-filter:blur(8px)}
+    .topbar-title{flex:1;font-size:15px;font-weight:600;letter-spacing:-.02em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .topbar-title span{font-size:12px;color:var(--muted);font-weight:400}
+    .tb-btn{background:var(--bg2);border:1px solid var(--line);color:var(--muted);padding:7px 11px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .12s ease}
+    .tb-btn:hover{background:var(--bg3);border-color:var(--line2);color:var(--text)}
+    .model-select{background:var(--bg2);border:1px solid var(--line);color:var(--muted);padding:6px 8px;border-radius:8px;outline:none}
+    .model-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,143,255,.12)}
+
+    .content{flex:1;overflow:auto;padding:0}
+    .content-inner{max-width:1100px;margin:0 auto;width:100%;padding:20px 18px 24px}
+    .card{background:rgba(23,29,46,.85);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+    .card-title{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+
+    .greeting-card{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--radius);background:linear-gradient(135deg,rgba(91,143,255,.15),rgba(167,139,250,.08));border:1px solid rgba(91,143,255,.22);margin-bottom:16px}
+    .gc-avatar{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px}
+    .gc-text h2{font-size:24px;letter-spacing:-.03em;margin-bottom:4px}
+    .gc-text p{font-size:13px;color:var(--muted)}
+
+    .dash-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 14px}
+    .stat-card{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(23,29,46,.85);border:1px solid var(--line);border-radius:var(--radius)}
+    .stat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03);font-size:20px}
+    .stat-val{font-size:22px;font-weight:700;letter-spacing:-.04em}
+    .stat-label{font-size:12px;color:var(--muted)}
+
+    .task-input-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+    .task-input-row input,.task-input-row select{background:var(--bg1);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:8px;outline:none}
+    .task-list{display:flex;flex-direction:column;gap:8px}
+    .task-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(15,19,32,.8)}
+    .priority-dot{width:10px;height:10px;border-radius:50%}
+    .task-toggle{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line2);background:transparent;cursor:pointer;position:relative}
+    .task-toggle.done{background:var(--green);border-color:var(--green)}
+    .task-toggle.done::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700}
+    .task-content{flex:1;min-width:0}
+    .task-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .task-title.done{text-decoration:line-through;opacity:.6}
+    .task-meta{font-size:11.5px;color:var(--muted)}
+    .task-del{background:none;border:none;color:var(--dim);font-size:18px;padding:0 4px}
+    .task-del:hover{color:var(--red)}
+
+    .note-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .note-card{background:rgba(23,29,46,.85);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px}
+    .note-card h4{font-size:14px;font-weight:600}
+    .note-card p{font-size:12.5px;color:var(--muted);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .note-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto}
+    .tiny-btn{background:var(--bg3);border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12px}
+    .tiny-btn.danger{border-color:rgba(224,92,107,.4);color:var(--red)}
+
+    .schedule-list{display:flex;flex-direction:column;gap:10px}
+    .event-row{display:flex;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(15,19,32,.8)}
+    .event-time{min-width:62px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+    .event-title{font-weight:600;font-size:13px}
+    .event-desc{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .study-upload{border:1px dashed var(--line2);background:rgba(15,19,32,.6);border-radius:14px;min-height:120px;padding:20px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);cursor:pointer}
+    .study-upload.drag{border-color:var(--accent);background:rgba(91,143,255,.08)}
+    .file-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+    .file-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);background:rgba(15,19,32,.7);border-radius:8px}
+    .file-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+    .file-remove{background:none;border:none;color:var(--dim);font-size:15px}
+    .study-plan{display:flex;flex-direction:column;gap:12px}
+    .plan-day{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(15,19,32,.75)}
+    .plan-day-head{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+    .plan-day-label{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+    .plan-day-meta{flex:1}
+    .plan-day-meta .title{font-size:13px;font-weight:700}
+    .plan-day-meta .sub{font-size:11.5px;color:var(--muted)}
+    .plan-day-body{padding:0 12px 12px;border-top:1px solid var(--line)}
+    .session{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+    .session:last-child{border-bottom:none}
+    .session-time{width:60px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+    .session-dot{width:8px;height:8px;border-radius:50%;margin-top:7px}
+    .session-content{flex:1}
+    .session-title{font-size:13px;font-weight:600}
+    .session-desc{font-size:12px;color:var(--muted);margin-top:2px}
+    .session-task-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .session-task{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--muted)}
+    .task-check{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--line2);margin-top:2px}
+    .task-check.done{background:var(--green);border-color:var(--green);box-shadow:inset 0 0 0 2px #fff}
+
+    .pomo-ring{position:relative;width:180px;height:180px;margin:0 auto}
+    .pomo-svg{transform:rotate(-90deg);position:absolute;inset:0}
+    .pomo-bg{fill:none;stroke:var(--bg3);stroke-width:8}
+    .pomo-arc{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+    .pomo-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .pomo-time{font-size:30px;font-weight:700;font-family:var(--mono);letter-spacing:-.04em}
+    .pomo-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .pomo-controls{display:flex;gap:10px;justify-content:center;margin-top:12px}
+
+    .btn{appearance:none;border:none;padding:8px 14px;border-radius:9px;background:var(--bg3);color:var(--text);border:1px solid var(--line2);transition:all .12s ease}
+    .btn:hover{background:var(--bg4)}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;box-shadow:0 10px 22px rgba(91,143,255,.18)}
+    .btn.primary:hover{filter:brightness(1.03)}
+    .btn.danger{background:rgba(224,92,107,.1);border-color:rgba(224,92,107,.35);color:var(--red)}
+    .btn.danger:hover{background:rgba(224,92,107,.14)}
+
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:42px 18px;color:var(--muted);gap:10px}
+    .empty-icon{font-size:38px}
+    .empty h3{font-size:18px;color:var(--text);font-weight:700}
+
+    .chat-app{height:100%;display:flex;flex-direction:column}
+    .messages{flex:1;overflow:auto;padding:18px 18px 10px}
+    .msg-row{display:flex;gap:12px;max-width:860px;margin:0 auto 14px;animation:msgIn .18s ease}
+    @keyframes msgIn{from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)}}
+    .msg-row.user{flex-direction:row-reverse}
+    .avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+    .avatar.bot{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 0 14px rgba(91,143,255,.2)}
+    .avatar.user{background:var(--bg3);border:1px solid var(--line2);color:var(--muted)}
+    .bubble-wrap{min-width:0;max-width:78%}
+    .bubble{display:inline-block;max-width:100%;padding:11px 14px;border-radius:15px;line-height:1.7;font-size:14px;word-break:break-word}
+    .bubble.bot{background:var(--bg2);border:1px solid var(--line);border-top-left-radius:4px;color:var(--text)}
+    .bubble.user{background:linear-gradient(135deg,var(--accent),var(--accent2));border-bottom-right-radius:4px;color:#fff;font-weight:500}
+    .bubble p,.bubble ul,.bubble ol,.bubble pre{margin-bottom:10px}.bubble p:last-child,.bubble ul:last-child,.bubble ol:last-child,.bubble pre:last-child{margin-bottom:0}
+    .bubble ul,.bubble ol{padding-left:18px}.bubble code{font-family:var(--mono);background:rgba(0,0,0,.35);padding:2px 6px;border-radius:5px;font-size:12px}
+    .bubble pre{background:#0d1117;border:1px solid var(--line);padding:12px;border-radius:10px;overflow:auto}
+    .bubble pre code{background:none;padding:0}
+    .bubble h1,.bubble h2,.bubble h3{margin:10px 0 6px;font-weight:700;letter-spacing:-.02em}
+    .bubble blockquote{border-left:3px solid var(--accent);padding-left:10px;color:var(--muted);margin:8px 0}
+    .bubble table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px}
+    .bubble th,.bubble td{border:1px solid var(--line);padding:6px 9px;background:rgba(255,255,255,.01)}.bubble th{background:var(--bg3)}
+    .bubble a{color:var(--cyan)}
+    .msg-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px;color:var(--dim)}
+    .copy-btn{background:none;border:none;color:var(--dim);padding:2px 4px;border-radius:4px;font-size:11px}
+    .copy-btn:hover{background:rgba(255,255,255,.03);color:var(--accent)}
+
+    .quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-width:440px;width:100%;margin:0 auto 12px}
+    .quick-card{background:rgba(23,29,46,.7);border:1px solid var(--line);padding:10px 12px;border-radius:12px;transition:all .12s ease}
+    .quick-card:hover{border-color:var(--accent);background:rgba(91,143,255,.05)}
+    .quick-card .icon{font-size:18px;margin-bottom:6px}
+    .quick-card .title{font-size:12.5px;font-weight:600}
+    .quick-card .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+    .composer{border-top:1px solid var(--line);padding:14px 18px;background:rgba(9,12,20,.7)}
+    .composer-inner{display:flex;gap:10px;align-items:flex-end;max-width:860px;margin:0 auto}
+    .composer-input{flex:1;position:relative}
+    .msg-input{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px 46px 12px 14px;min-height:46px;max-height:180px;resize:none;overflow:auto;outline:none;line-height:1.5}
+    .msg-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,143,255,.12)}
+    .voice-btn{position:absolute;right:10px;bottom:10px;background:none;border:none;color:var(--dim);padding:4px;border-radius:6px}
+    .voice-btn:hover{color:var(--accent)}
+    .send-btn{width:46px;height:46px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 24px rgba(91,143,255,.2)}
+    .send-btn:disabled{opacity:.45;cursor:not-allowed}
+    .hint-row{display:flex;justify-content:space-between;align-items:center;max-width:860px;margin:8px auto 0;color:var(--dim);font-size:11.5px}
+    .typing-block{display:flex;align-items:center;gap:12px;max-width:860px;margin:0 auto 14px;animation:msgIn .18s ease}
+    .typing-dots{display:flex;align-items:center;gap:5px;padding:12px 16px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);border-top-left-radius:4px}
+    .typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:dotFade 1s ease-in-out infinite}
+    .typing-dots span:nth-child(2){animation-delay:.12s}.typing-dots span:nth-child(3){animation-delay:.24s}@keyframes dotFade{0%,100%{opacity:.5;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+
+    .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:rgba(30,37,52,.96);color:var(--text);padding:8px 14px;border:1px solid var(--line2);border-radius:999px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .15s ease;font-size:12.5px;z-index:2000}
+    .toast.show{opacity:1}
+
+    @media (max-width:980px){
+      .app{grid-template-columns:76px 1fr}
+      .sidebar{display:none}
+      .dash-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid2,.grid3,.note-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="logo">✦</div>
+      <div class="rail-btn active" data-page="chat" title="Chat">💬</div>
+      <div class="rail-btn" data-page="dashboard" title="Dashboard">🏠</div>
+      <div class="rail-btn" data-page="tasks" title="Tasks">✅</div>
+      <div class="rail-btn" data-page="notes" title="Notes">📝</div>
+      <div class="rail-btn" data-page="schedule" title="Schedule">📅</div>
+      <div class="rail-sep"></div>
+      <div class="rail-btn" data-page="study" title="Study planner">📚</div>
+      <div class="rail-btn" data-page="pomodoro" title="Focus timer">⏱</div>
+      <div class="rail-spacer"></div>
+      <div class="rail-btn" data-page="settings" title="Settings">⚙️</div>
+    </aside>
+
+    <aside class="sidebar">
+      <div class="sb-head">
+        <div class="sb-title">Nova <em>Assistant</em></div>
+        <div class="sb-sub" id="sbSub">Good day ✦</div>
+      </div>
+      <div class="sb-scroll">
+        <div class="sb-section">Main</div>
+        <div class="sb-item active" data-page="chat"><span class="icon">💬</span><span class="label">Chat</span></div>
+        <div class="sb-item" data-page="dashboard"><span class="icon">🏠</span><span class="label">Dashboard</span></div>
+        <div class="sb-item" data-page="tasks"><span class="icon">✅</span><span class="label">Tasks</span><span class="badge" id="taskBadge">0</span></div>
+        <div class="sb-item" data-page="notes"><span class="icon">📝</span><span class="label">Notes</span></div>
+        <div class="sb-item" data-page="schedule"><span class="icon">📅</span><span class="label">Schedule</span></div>
+        <div class="sb-section">Smart tools</div>
+        <div class="sb-item" data-page="study"><span class="icon">📚</span><span class="label">Study Planner</span></div>
+        <div class="sb-item" data-page="pomodoro"><span class="icon">⏱</span><span class="label">Focus Timer</span></div>
+        <div class="sb-item" data-page="settings"><span class="icon">⚙️</span><span class="label">Settings</span></div>
+        <button class="new-chat-btn" id="newChatBtn" type="button">＋ New conversation</button>
+        <div class="chat-list" id="chatList"></div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="mini-label">API</div>
+        <div class="field" style="margin-bottom:8px">
+          <label for="providerSelect">Provider</label>
+          <select id="providerSelect" class="sf-input">
+            <option value="claude">Anthropic (Claude)</option>
+            <option value="openai">OpenAI</option>
+            <option value="gemini">Gemini</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="ollama">Ollama</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:8px">
+          <label for="apiKeyInput">API Key</label>
+          <input id="apiKeyInput" class="sf-input" type="password" placeholder="Paste key here" />
+        </div>
+        <div class="field" id="endpointField" style="display:none">
+          <label for="endpointInput">Endpoint</label>
+          <input id="endpointInput" class="sf-input" type="text" placeholder="https://..." />
+        </div>
+        <div class="api-status"><span class="status-dot live"></span><span id="apiStatusText">Ready for AI</span></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topbarTitle">Chat <span>with Nova</span></div>
+        <select id="modelSelect" class="model-select">
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+          <option value="gpt-4o-mini">GPT-4o mini</option>
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+          <option value="meta-llama/llama-3.1-8b-instruct:free">OpenRouter Llama 3.1</option>
+        </select>
+        <button class="tb-btn" id="exportBtn" type="button">⇩ Export</button>
+        <button class="tb-btn" id="clearBtn" type="button">⌫ Clear</button>
+      </div>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const PROVIDERS = {
+      claude: { endpoint: null, model: 'claude-sonnet-4-6' },
+      openai: { endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
+      gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', model: 'gemini-2.0-flash' },
+      openrouter: { endpoint: 'https://openrouter.ai/api/v1/chat/completions', model: 'meta-llama/llama-3.1-8b-instruct:free' },
+      ollama: { endpoint: 'http://localhost:11434/v1/chat/completions', model: 'llama3.1' },
+      custom: { endpoint: '', model: '' }
+    };
+
+    const STORAGE_KEY = 'nova-unified-chat-v1';
+    const state = loadState();
+    let streaming = false;
+
+    function defaultState() {
+      const chat = {
+        id: makeId(),
+        title: 'New conversation',
+        messages: [{ role: 'assistant', text: 'Hello! I am Nova, your personal AI assistant. Ask me for plans, notes, summaries, or help with anything.' }]
+      };
+      return {
+        name: 'Student',
+        page: 'chat',
+        provider: 'claude',
+        apiKey: '',
+        endpoint: '',
+        model: 'claude-sonnet-4-6',
+        chats: [chat],
+        activeChatId: chat.id,
+        tasks: [],
+        notes: [],
+        schedule: {},
+        studyFiles: [],
+        studyPlan: null,
+        pomodoro: { running: false, mode: 'work', workMins: 25, breakMins: 5, secsLeft: 25 * 60, interval: null }
+      };
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if (!saved) return defaultState();
+        const merged = { ...defaultState(), ...saved };
+        if (!merged.chats || !merged.chats.length) merged.chats = defaultState().chats;
+        if (!merged.activeChatId) merged.activeChatId = merged.chats[0].id;
+        if (!merged.provider) merged.provider = 'claude';
+        if (!merged.endpoint) merged.endpoint = PROVIDERS[merged.provider]?.endpoint || '';
+        if (!merged.model) merged.model = PROVIDERS[merged.provider]?.model || 'gpt-4o-mini';
+        return merged;
+      } catch {
+        return defaultState();
+      }
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function makeId() {
+      return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+    }
+
+    function getGreeting() {
+      const h = new Date().getHours();
+      if (h < 12) return 'Good morning';
+      if (h < 17) return 'Good afternoon';
+      return 'Good evening';
+    }
+
+    function getActiveChat() {
+      return state.chats.find(c => c.id === state.activeChatId) || state.chats[0];
+    }
+
+    function renderSidebar() {
+      document.getElementById('sbSub').textContent = getGreeting() + (state.name ? ' ' + state.name : '') + ' ✦';
+      document.getElementById('taskBadge').textContent = state.tasks.filter(t => !t.done).length;
+      document.getElementById('providerSelect').value = state.provider;
+      document.getElementById('apiKeyInput').value = state.apiKey;
+      document.getElementById('endpointInput').value = state.endpoint || '';
+      document.getElementById('endpointField').style.display = (state.provider === 'custom' || state.provider === 'openai' || state.provider === 'gemini' || state.provider === 'openrouter' || state.provider === 'ollama') ? 'block' : 'none';
+      document.getElementById('apiStatusText').textContent = state.apiKey ? 'Live AI ready' : 'Ready for AI';
+      document.querySelector('.status-dot').classList.toggle('live', !!state.apiKey);
+      document.getElementById('modelSelect').value = state.model || PROVIDERS[state.provider]?.model || 'gpt-4o-mini';
+
+      const list = document.getElementById('chatList');
+      if (list) {
+        list.innerHTML = state.chats.map(chat => `
+          <div class="chat-item ${chat.id === state.activeChatId ? 'active' : ''}" data-id="${chat.id}">
+            <span class="icon">💬</span>
+            <span class="title">${escapeHtml(chat.title)}</span>
+            <span class="close" data-close="${chat.id}">×</span>
+          </div>
+        `).join('');
+      }
+
+      document.querySelectorAll('.sb-item, .rail-btn').forEach(node => {
+        node.classList.toggle('active', node.dataset.page === state.page);
+      });
+    }
+
+    function renderTopbar() {
+      const titleMap = {
+        chat: 'Chat <span>with Nova</span>',
+        dashboard: 'Dashboard <span>overview</span>',
+        tasks: 'Tasks <span>& to-dos</span>',
+        notes: 'Notes <span>& ideas</span>',
+        schedule: 'Schedule <span>& events</span>',
+        study: 'Study Planner <span>AI plan</span>',
+        pomodoro: 'Focus Timer <span>Pomodoro</span>',
+        settings: 'Settings <span>& API</span>'
+      };
+      document.getElementById('topbarTitle').innerHTML = titleMap[state.page] || 'Nova';
+    }
+
+    function setPage(page) {
+      state.page = page;
+      renderSidebar();
+      renderTopbar();
+      renderContent();
+      persist();
+    }
+
+    function renderContent() {
+      const content = document.getElementById('content');
+      if (state.page === 'chat') return renderChatPage();
+      if (state.page === 'dashboard') return renderDashboard();
+      if (state.page === 'tasks') return renderTasks();
+      if (state.page === 'notes') return renderNotes();
+      if (state.page === 'schedule') return renderSchedule();
+      if (state.page === 'study') return renderStudy();
+      if (state.page === 'pomodoro') return renderPomodoro();
+      if (state.page === 'settings') return renderSettings();
+      renderChatPage();
+    }
+
+    function renderChatPage() {
+      const content = document.getElementById('content');
+      const active = getActiveChat();
+      content.innerHTML = `
+        <div class="chat-app">
+          <div class="messages" id="messages"></div>
+          <div class="quick-grid">
+            <div class="quick-card" data-prompt="Summarize my tasks and schedule for today."><div class="icon">🧭</div><div class="title">Today's overview</div><div class="sub">Quick recap of your day</div></div>
+            <div class="quick-card" data-prompt="Give me a motivational study tip and a 20-minute plan."><div class="icon">📚</div><div class="title">Study boost</div><div class="sub">Stay focused and productive</div></div>
+            <div class="quick-card" data-prompt="Draft a professional email follow-up."><div class="icon">✉️</div><div class="title">Email draft</div><div class="sub">Write polished messages</div></div>
+            <div class="quick-card" data-prompt="Explain async/await in JavaScript with examples."><div class="icon">⚡</div><div class="title">Explain topic</div><div class="sub">Clear technical explanations</div></div>
+          </div>
+          <div class="composer">
+            <div class="composer-inner">
+              <div class="composer-input">
+                <textarea id="msgInput" class="msg-input" rows="1" placeholder="Message Nova…"></textarea>
+                <button class="voice-btn" id="voiceBtn" type="button">🎤</button>
+              </div>
+              <button class="send-btn" id="sendBtn" type="button" aria-label="Send">➤</button>
+            </div>
+            <div class="hint-row"><span>Enter to send · Shift+Enter for new line</span><span id="charCount">0 chars</span></div>
+          </div>
+        </div>
+      `;
+
+      const messagesEl = document.getElementById('messages');
+      if (!active || !active.messages.length) {
+        messagesEl.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><h3>Hi! I'm Nova.</h3><p>Your personal assistant for tasks, notes, study plans, and quick answers.</p></div>`;
+      } else {
+        messagesEl.innerHTML = active.messages.map(msg => `
+          <div class="msg-row ${msg.role === 'user' ? 'user' : ''}">
+            <div class="avatar ${msg.role === 'user' ? 'user' : 'bot'}">${msg.role === 'user' ? 'U' : 'N'}</div>
+            <div class="bubble-wrap">
+              <div class="bubble ${msg.role === 'user' ? 'user' : 'bot'}">${renderMarkdown(msg.text)}</div>
+              <div class="msg-meta">
+                <span>${msg.role === 'user' ? 'You' : 'Nova'}</span>
+                <button class="copy-btn" type="button" data-copy="${escapeAttr(msg.text)}">Copy</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const msgInput = document.getElementById('msgInput');
+      msgInput.addEventListener('input', () => {
+        msgInput.style.height = 'auto';
+        msgInput.style.height = Math.min(msgInput.scrollHeight, 180) + 'px';
+        document.getElementById('charCount').textContent = msgInput.value.length + ' chars';
+      });
+      msgInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          document.getElementById('sendBtn').click();
+        }
+      });
+      document.getElementById('sendBtn').addEventListener('click', sendCurrentMessage);
+      document.querySelectorAll('.quick-card').forEach(card => {
+        card.addEventListener('click', () => {
+          msgInput.value = card.dataset.prompt;
+          msgInput.dispatchEvent(new Event('input'));
+          msgInput.focus();
+        });
+      });
+      document.getElementById('voiceBtn').addEventListener('click', () => {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return showToast('Voice input is not supported in this browser');
+        const recognition = new SR();
+        recognition.lang = 'en-US';
+        recognition.onresult = (event) => {
+          const transcript = Array.from(event.results).map(r => r[0].transcript).join(' ');
+          msgInput.value = transcript;
+          msgInput.dispatchEvent(new Event('input'));
+        };
+        recognition.start();
+      });
+      document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const text = button.getAttribute('data-copy');
+          navigator.clipboard.writeText(text).then(() => showToast('Copied')).catch(() => showToast('Copy failed'));
+        });
+      });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      msgInput.focus();
+    }
+
+    function sendCurrentMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || streaming) return;
+      const chat = getActiveChat();
+      chat.messages.push({ role: 'user', text });
+      if (chat.title === 'New conversation') chat.title = text.slice(0, 32) + (text.length > 32 ? '…' : '');
+      input.value = '';
+      persist();
+      renderSidebar();
+      renderChatPage();
+      respondToUser(text);
+    }
+
+    function respondToUser(text) {
+      const chat = getActiveChat();
+      const messagesEl = document.getElementById('messages');
+      const typing = document.createElement('div');
+      typing.className = 'typing-block';
+      typing.innerHTML = '<div class="avatar bot">N</div><div class="typing-dots"><span></span><span></span><span></span></div>';
+      messagesEl.appendChild(typing);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      streaming = true;
+      document.getElementById('sendBtn').disabled = true;
+
+      callAI(text).then(reply => {
+        typing.remove();
+        chat.messages.push({ role: 'assistant', text: reply });
+        persist();
+        renderSidebar();
+        renderChatPage();
+      }).catch(err => {
+        typing.remove();
+        chat.messages.push({ role: 'assistant', text: 'Something went wrong. Check the API key and provider settings.\n\n`' + escapeMarkdown(err.message) + '`' });
+        persist();
+        renderSidebar();
+        renderChatPage();
+      }).finally(() => {
+        streaming = false;
+        const btn = document.getElementById('sendBtn');
+        if (btn) btn.disabled = false;
+      });
+    }
+
+    async function callAI(userText) {
+      if (!state.apiKey) {
+        await new Promise(r => setTimeout(r, 400));
+        return fallbackReply(userText);
+      }
+      const provider = state.provider;
+      const model = state.model || PROVIDERS[provider]?.model || 'gpt-4o-mini';
+      const conversation = getActiveChat().messages.slice(-12).map(msg => ({ role: msg.role === 'assistant' ? 'assistant' : 'user', content: msg.text }));
+      const systemPrompt = 'You are Nova, a smart personal AI assistant. Help with tasks, notes, writing, planning, coding, study, and everyday productivity. Keep answers concise but useful. Format markdown when helpful.';
+
+      if (provider === 'claude') {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model, max_tokens: 1024, system: systemPrompt, messages: conversation.concat([{ role: 'user', content: userText }]) })
+        });
+        if (!response.ok) throw new Error('Claude failed: ' + (await response.text()).slice(0,200));
+        const data = await response.json();
+        return data.content?.[0]?.text || 'No response returned.';
+      }
+
+      const endpoint = state.endpoint || PROVIDERS[provider]?.endpoint;
+      if (!endpoint) throw new Error('No endpoint configured for provider');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.apiKey },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: systemPrompt }, ...conversation, { role: 'user', content: userText }],
+          temperature: 0.7,
+          max_tokens: 1024
+        })
+      });
+      if (!response.ok) throw new Error('API call failed: ' + (await response.text()).slice(0,200));
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || data.output?.[0]?.content || 'No response returned.';
+    }
+
+    function fallbackReply(text) {
+      const t = text.toLowerCase();
+      if (t.includes('task') || t.includes('todo')) return 'I can help with that. Use the Tasks panel or say: `Create a task to finish the design mockup by 5 PM`.';
+      if (t.includes('note') || t.includes('journal')) return 'Great idea. Save it in Notes and I can help structure or summarize it.';
+      if (t.includes('study') || t.includes('exam')) return 'Use the Study Planner to upload notes and generate a focused plan.';
+      if (t.includes('email') || t.includes('reply')) return 'I can draft a professional email. Try: `Write a follow-up email to a recruiter`.';
+      if (t.includes('schedule') || t.includes('calendar')) return 'Open the Schedule tab to add events and organize your day.';
+      return 'I’m Nova, your personal AI assistant. Add an API key in Settings to enable real AI responses, or keep using the built-in productivity tools.';
+    }
+
+    function renderDashboard() {
+      const content = document.getElementById('content');
+      const done = state.tasks.filter(t => t.done).length;
+      const pending = state.tasks.filter(t => !t.done).length;
+      const notes = state.notes.length;
+      const events = Object.values(state.schedule).flat().length;
+      const greeting = getGreeting();
+
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="greeting-card">
+            <div class="gc-avatar">✦</div>
+            <div class="gc-text">
+              <h2>${greeting}${state.name ? ', ' + state.name : ''}!</h2>
+              <p>${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
+            </div>
+          </div>
+          <div class="dash-grid">
+            <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-label">Completed</div></div></div>
+            <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-val" style="color:var(--amber)">${pending}</div><div class="stat-label">Pending</div></div></div>
+            <div class="stat-card"><div class="stat-icon">📅</div><div><div class="stat-val" style="color:var(--accent)">${events}</div><div class="stat-label">Events</div></div></div>
+            <div class="stat-card"><div class="stat-icon">📝</div><div><div class="stat-val" style="color:var(--purple)">${notes}</div><div class="stat-label">Notes</div></div></div>
+          </div>
+          <div class="grid2">
+            <div class="card">
+              <div class="card-title">📋 Pending tasks</div>
+              ${state.tasks.filter(t => !t.done).slice(0,4).map(task => `<div class="task-item" style="margin-bottom:8px"><div class="priority-dot" style="background:${priorityColor(task.priority)}"></div><div class="task-content"><div class="task-title">${escapeHtml(task.title)}</div><div class="task-meta">${escapeHtml(task.due || 'No due date')}</div></div></div>`).join('') || '<div class="empty" style="padding:16px 0"><div class="empty-icon">🎉</div><div>All clear for now.</div></div>'}
+              <button class="btn" type="button" style="margin-top:10px" onclick="setPage('tasks')">View all</button>
+            </div>
+            <div class="card">
+              <div class="card-title">📅 Events today</div>
+              ${getTodayEvents().slice(0,4).map(event => `<div class="event-row"><div class="event-time">${escapeHtml(event.time)}</div><div class="event-details"><div class="event-title">${escapeHtml(event.title)}</div><div class="event-desc">${escapeHtml(event.desc || '')}</div></div></div>`).join('') || '<div class="empty" style="padding:16px 0"><div class="empty-icon">🗓️</div><div>Nothing scheduled today.</div></div>'}
+              <button class="btn" type="button" style="margin-top:10px" onclick="setPage('schedule')">Open schedule</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTasks() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">✅ Add a task</div>
+            <div class="task-input-row">
+              <input id="taskTitle" type="text" placeholder="Task title" style="flex:1" />
+              <select id="taskPriority" style="width:120px">
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+              <input id="taskDue" type="text" placeholder="Due date" style="width:120px" />
+              <button class="btn primary" id="addTaskBtn" type="button">Add</button>
+            </div>
+            <div class="task-list" id="taskList"></div>
+          </div>
+        </div>
+      `;
+      renderTaskList();
+      document.getElementById('addTaskBtn').addEventListener('click', addTaskFromForm);
+    }
+
+    function renderTaskList() {
+      const list = document.getElementById('taskList');
+      if (!list) return;
+      list.innerHTML = state.tasks.length ? state.tasks.map((task, index) => `
+        <div class="task-item">
+          <div class="task-toggle ${task.done ? 'done' : ''}" data-index="${index}" aria-label="Mark task done"></div>
+          <div class="priority-dot" style="background:${priorityColor(task.priority)}"></div>
+          <div class="task-content">
+            <div class="task-title ${task.done ? 'done' : ''}">${escapeHtml(task.title)}</div>
+            <div class="task-meta">${escapeHtml(task.due || 'No due date')} · ${task.priority}</div>
+          </div>
+          <button class="task-del" type="button" data-delete="${index}" aria-label="Delete task">×</button>
+        </div>
+      `).join('') : '<div class="empty"><div class="empty-icon">✅</div><div>No tasks yet. Add one above.</div></div>';
+
+      list.querySelectorAll('.task-toggle').forEach(button => {
+        button.addEventListener('click', () => {
+          const idx = Number(button.dataset.index);
+          state.tasks[idx].done = !state.tasks[idx].done;
+          persist();
+          renderTaskList();
+          renderSidebar();
+        });
+      });
+      list.querySelectorAll('.task-del').forEach(button => {
+        button.addEventListener('click', () => {
+          const idx = Number(button.dataset.delete);
+          state.tasks.splice(idx, 1);
+          persist();
+          renderTaskList();
+          renderSidebar();
+        });
+      });
+    }
+
+    function addTaskFromForm() {
+      const title = document.getElementById('taskTitle').value.trim();
+      if (!title) return showToast('Add a task title');
+      state.tasks.unshift({ title, priority: document.getElementById('taskPriority').value, due: document.getElementById('taskDue').value.trim(), done: false });
+      persist();
+      renderTaskList();
+      renderSidebar();
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('taskDue').value = '';
+      document.getElementById('taskTitle').focus();
+    }
+
+    function renderNotes() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">📝 New note</div>
+            <input id="noteTitle" class="sf-input" type="text" placeholder="Note title" style="margin-bottom:10px" />
+            <textarea id="noteBody" rows="5" class="sf-input" placeholder="Write your note…" style="resize:vertical;margin-bottom:10px"></textarea>
+            <button class="btn primary" id="saveNoteBtn" type="button">Save note</button>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="card-title">📦 Saved notes</div>
+            <div class="note-grid" id="noteGrid"></div>
+          </div>
+        </div>
+      `;
+      renderNoteGrid();
+      document.getElementById('saveNoteBtn').addEventListener('click', () => {
+        const title = document.getElementById('noteTitle').value.trim();
+        const body = document.getElementById('noteBody').value.trim();
+        if (!title && !body) return showToast('Write a note first');
+        state.notes.unshift({ title: title || 'Untitled note', body: body || '', createdAt: new Date().toISOString() });
+        persist();
+        renderNoteGrid();
+        document.getElementById('noteTitle').value = '';
+        document.getElementById('noteBody').value = '';
+      });
+    }
+
+    function renderNoteGrid() {
+      const noteGrid = document.getElementById('noteGrid');
+      if (!noteGrid) return;
+      noteGrid.innerHTML = state.notes.length ? state.notes.map((note, index) => `
+        <div class="note-card">
+          <h4>${escapeHtml(note.title)}</h4>
+          <p>${escapeHtml(note.body || 'No content')}</p>
+          <div class="note-actions">
+            <span style="font-size:11px;color:var(--dim)">${new Date(note.createdAt).toLocaleDateString()}</span>
+            <div style="display:flex;gap:6px">
+              <button class="tiny-btn" type="button" data-edit="${index}">Edit</button>
+              <button class="tiny-btn danger" type="button" data-delete="${index}">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty" style="grid-column:1/-1;padding:18px"><div class="empty-icon">📝</div><div>No notes saved yet.</div></div>';
+
+      noteGrid.querySelectorAll('[data-delete]').forEach(button => {
+        button.addEventListener('click', () => {
+          state.notes.splice(Number(button.dataset.delete), 1);
+          persist();
+          renderNoteGrid();
+        });
+      });
+      noteGrid.querySelectorAll('[data-edit]').forEach(button => {
+        button.addEventListener('click', () => {
+          const idx = Number(button.dataset.edit);
+          const note = state.notes[idx];
+          document.getElementById('noteTitle').value = note.title;
+          document.getElementById('noteBody').value = note.body;
+          state.notes.splice(idx, 1);
+          persist();
+          renderNoteGrid();
+        });
+      });
+    }
+
+    function renderSchedule() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">📅 Add event</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+              <input id="eventDate" class="sf-input" type="date" />
+              <input id="eventTime" class="sf-input" type="time" />
+              <input id="eventTitle" class="sf-input" type="text" placeholder="Title" />
+            </div>
+            <textarea id="eventDesc" rows="3" class="sf-input" placeholder="Description" style="margin-top:10px;resize:vertical"></textarea>
+            <button class="btn primary" type="button" id="saveEventBtn" style="margin-top:10px">Add event</button>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="card-title">🗓️ Upcoming events</div>
+            <div class="schedule-list" id="scheduleList"></div>
+          </div>
+        </div>
+      `;
+      renderScheduleList();
+      document.getElementById('saveEventBtn').addEventListener('click', () => {
+        const date = document.getElementById('eventDate').value || new Date().toISOString().slice(0,10);
+        const time = document.getElementById('eventTime').value || '09:00';
+        const title = document.getElementById('eventTitle').value.trim();
+        const desc = document.getElementById('eventDesc').value.trim();
+        if (!title) return showToast('Enter an event title');
+        if (!state.schedule[date]) state.schedule[date] = [];
+        state.schedule[date].push({ time, title, desc });
+        persist();
+        renderSchedule();
+      });
+    }
+
+    function getTodayEvents() {
+      const today = new Date().toISOString().slice(0,10);
+      return state.schedule[today] || [];
+    }
+
+    function renderScheduleList() {
+      const list = document.getElementById('scheduleList');
+      if (!list) return;
+      const entries = Object.entries(state.schedule || {}).sort(([a], [b]) => a.localeCompare(b));
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty" style="padding:16px 0"><div class="empty-icon">📅</div><div>No events yet.</div></div>';
+        return;
+      }
+      list.innerHTML = entries.flatMap(([date, events]) => events.map(event => `
+        <div class="event-row">
+          <div class="event-time">${escapeHtml(date.slice(5))}<br>${escapeHtml(event.time)}</div>
+          <div class="event-details">
+            <div class="event-title">${escapeHtml(event.title)}</div>
+            <div class="event-desc">${escapeHtml(event.desc || 'No description')}</div>
+          </div>
+        </div>
+      `)).join('');
+    }
+
+    function renderStudy() {
+      const content = document.getElementById('content');
+      if (state.studyPlan) {
+        content.innerHTML = `
+          <div class="content-inner">
+            <div class="card">
+              <div class="card-title">📚 Study plan</div>
+              <div style="font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:8px;">${escapeHtml(state.studyPlan.title || 'Study plan')}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                ${(state.studyPlan.topics || []).slice(0,6).map(topic => `<span style="background:${topic.priority === 'high' ? 'rgba(224,92,107,.14)' : topic.priority === 'low' ? 'rgba(62,207,142,.12)' : 'rgba(244,185,66,.12)'};color:${topic.priority === 'high' ? 'var(--red)' : topic.priority === 'low' ? 'var(--green)' : 'var(--amber)'};padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700">${escapeHtml(topic.name)}</span>`).join('')}
+              </div>
+              <div class="study-plan">${(state.studyPlan.days || []).map(day => `<div class="plan-day"><div class="plan-day-head" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? '' : 'none'">
+                <div class="plan-day-label" style="background:${day.color || 'rgba(91,143,255,.14)'};color:${day.color || 'var(--accent)'}">D${day.day}</div>
+                <div class="plan-day-meta"><div class="title">${escapeHtml(day.theme)}</div><div class="sub">${(day.sessions || []).length} sessions</div></div>
+                <span style="color:var(--dim)">▾</span></div><div class="plan-day-body">${(day.sessions || []).map(session => `<div class="session"><div class="session-time">${escapeHtml(session.time)}</div><div class="session-dot" style="background:${session.type === 'study' ? 'var(--accent)' : session.type === 'review' ? 'var(--green)' : session.type === 'practice' ? 'var(--amber)' : 'var(--dim)'}"></div><div class="session-content"><div class="session-title">${escapeHtml(session.title)}</div><div class="session-desc">${escapeHtml(session.description || '')}</div>${(session.tasks || []).length ? `<div class="session-task-list">${session.tasks.map(task => `<div class="session-task"><div class="task-check"></div><span>${escapeHtml(task)}</span></div>`).join('')}</div>` : ''}</div></div>`).join('')}</div></div>`).join('')}</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">📂 Upload study materials</div>
+            <div class="study-upload" id="studyUploadZone">
+              <div style="font-size:28px">📁</div>
+              <div>Drop files or click to upload</div>
+              <div style="font-size:12px;color:var(--dim)">TXT, MD, PDF</div>
+              <input id="studyInput" type="file" multiple accept=".txt,.md,.pdf" style="display:none" />
+            </div>
+            <div class="file-list" id="studyFileList"></div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="card-title">⚙️ Plan settings</div>
+            <div class="grid2">
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Exam / subject</label><input id="examName" class="sf-input" value="Exam prep" /></div>
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Days</label><input id="examDays" class="sf-input" type="number" value="7" min="1" max="30" /></div>
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Hours/day</label><input id="examHours" class="sf-input" type="number" value="4" min="1" max="12" /></div>
+            </div>
+          </div>
+          <button class="btn primary" type="button" id="generateStudyBtn" style="margin-top:14px;width:100%">✦ Generate AI study plan</button>
+        </div>
+      `;
+      renderStudyFiles();
+      const zone = document.getElementById('studyUploadZone');
+      const input = document.getElementById('studyInput');
+      zone.addEventListener('click', () => input.click());
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag')); 
+      zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleStudyFiles(e.dataTransfer.files); });
+      input.addEventListener('change', () => handleStudyFiles(input.files));
+      document.getElementById('generateStudyBtn').addEventListener('click', generateStudyPlan);
+    }
+
+    function renderStudyFiles() {
+      const list = document.getElementById('studyFileList');
+      if (!list) return;
+      list.innerHTML = (state.studyFiles || []).map((file, index) => `
+        <div class="file-chip">
+          <span>📄</span>
+          <span class="file-name">${escapeHtml(file.name)}</span>
+          <button class="file-remove" type="button" data-file-index="${index}">×</button>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:12px;">No files uploaded yet.</div>';
+      list.querySelectorAll('[data-file-index]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.studyFiles.splice(Number(btn.dataset.fileIndex), 1);
+          persist();
+          renderStudyFiles();
+        });
+      });
+    }
+
+    async function handleStudyFiles(files) {
+      for (const file of files) {
+        try {
+          const text = await file.text();
+          state.studyFiles.push({ name: file.name, content: text.slice(0,25000) });
+        } catch {
+          state.studyFiles.push({ name: file.name, content: '[Could not read file]' });
+        }
+      }
+      persist();
+      renderStudyFiles();
+    }
+
+    async function generateStudyPlan() {
+      if (!state.studyFiles.length) return showToast('Upload study files first');
+      if (!state.apiKey) return showToast('Add API key in Settings first');
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="content-inner"><div class="empty"><div class="empty-icon">⏳</div><h3>Generating study plan…</h3><p>Analyzing materials and building a task-based plan.</p></div></div>';
+      const examName = document.getElementById('examName')?.value || 'Exam prep';
+      const examDays = Number(document.getElementById('examDays')?.value || 7);
+      const examHours = Number(document.getElementById('examHours')?.value || 4);
+      const context = state.studyFiles.map(file => `--- ${file.name} ---\n${file.content}`).join('\n\n');
+      const prompt = `Create a realistic study plan in valid JSON only.\nExam/subject: ${examName}\nDays: ${examDays}\nHours per day: ${examHours}\n\nMaterials:\n${context}\n\nReturn this structure: {"title":"...","topics":[{"name":"...","priority":"high|medium|low"}],"days":[{"day":1,"theme":"...","color":"#hex","sessions":[{"time":"9:00 AM","type":"study|review|practice|rest","title":"...","description":"...","tasks":["task1","task2"]}]}],"importantQuestions":[{"question":"...","priority":"high|medium"}]}`;
+      try {
+        const raw = await callAI(prompt);
+        const clean = raw.replace(/```json|```/g, '').trim();
+        state.studyPlan = JSON.parse(clean);
+        persist();
+        renderStudy();
+      } catch (err) {
+        console.error(err);
+        state.studyPlan = null;
+        showToast('Study plan failed');
+        renderStudy();
+      }
+    }
+
+    function renderPomodoro() {
+      const content = document.getElementById('content');
+      const total = state.pomodoro.mode === 'work' ? state.pomodoro.workMins * 60 : state.pomodoro.breakMins * 60;
+      const ratio = total ? Math.max(0, Math.min(1, state.pomodoro.secsLeft / total)) : 0;
+      const dash = 2 * Math.PI * 54 * (1 - ratio);
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">⏱ Focus timer</div>
+            <div class="pomo-ring">
+              <svg class="pomo-svg" width="180" height="180" viewBox="0 0 140 140">
+                <circle class="pomo-bg" cx="70" cy="70" r="54"></circle>
+                <circle class="pomo-arc" cx="70" cy="70" r="54" stroke-dasharray="339.292" stroke-dashoffset="${dash}"></circle>
+              </svg>
+              <div class="pomo-center">
+                <div class="pomo-time" id="pomoTime">${formatTimer(state.pomodoro.secsLeft)}</div>
+                <div class="pomo-label">${state.pomodoro.mode === 'work' ? 'Focus' : 'Break'}</div>
+              </div>
+            </div>
+            <div class="pomo-controls">
+              <button class="btn primary" type="button" id="togglePomodoro">${state.pomodoro.running ? 'Pause' : 'Start'}</button>
+              <button class="btn" type="button" id="resetPomodoro">Reset</button>
+              <button class="btn" type="button" id="switchPomodoro">Switch mode</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('togglePomodoro').addEventListener('click', togglePomodoro);
+      document.getElementById('resetPomodoro').addEventListener('click', resetPomodoro);
+      document.getElementById('switchPomodoro').addEventListener('click', () => {
+        state.pomodoro.mode = state.pomodoro.mode === 'work' ? 'break' : 'work';
+        state.pomodoro.secsLeft = (state.pomodoro.mode === 'work' ? state.pomodoro.workMins : state.pomodoro.breakMins) * 60;
+        state.pomodoro.running = false;
+        clearInterval(state.pomodoro.interval);
+        state.pomodoro.interval = null;
+        persist();
+        renderPomodoro();
+      });
+    }
+
+    function togglePomodoro() {
+      if (state.pomodoro.running) {
+        state.pomodoro.running = false;
+        clearInterval(state.pomodoro.interval);
+        state.pomodoro.interval = null;
+      } else {
+        state.pomodoro.running = true;
+        state.pomodoro.interval = setInterval(() => {
+          if (state.pomodoro.secsLeft > 0) {
+            state.pomodoro.secsLeft -= 1;
+          } else {
+            clearInterval(state.pomodoro.interval);
+            state.pomodoro.running = false;
+            state.pomodoro.mode = state.pomodoro.mode === 'work' ? 'break' : 'work';
+            state.pomodoro.secsLeft = (state.pomodoro.mode === 'work' ? state.pomodoro.workMins : state.pomodoro.breakMins) * 60;
+            state.pomodoro.interval = null;
+            showToast(state.pomodoro.mode === 'work' ? 'Back to focus' : 'Break time');
+          }
+          persist();
+          renderPomodoro();
+        }, 1000);
+      }
+      persist();
+      renderPomodoro();
+    }
+
+    function resetPomodoro() {
+      state.pomodoro.running = false;
+      clearInterval(state.pomodoro.interval);
+      state.pomodoro.interval = null;
+      state.pomodoro.secsLeft = (state.pomodoro.mode === 'work' ? state.pomodoro.workMins : state.pomodoro.breakMins) * 60;
+      persist();
+      renderPomodoro();
+    }
+
+    function formatTimer(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function renderSettings() {
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="content-inner">
+          <div class="card">
+            <div class="card-title">⚙️ Profile</div>
+            <div class="grid2">
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Name</label><input id="profileName" class="sf-input" value="${escapeAttr(state.name)}" /></div>
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Theme</label><select id="themeSelect" class="sf-input"><option value="blue">Blue</option><option value="purple">Purple</option><option value="green">Green</option></select></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="card-title">🔑 AI settings</div>
+            <div class="grid2">
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Provider</label><select id="settingsProvider" class="sf-input"><option value="claude">Anthropic (Claude)</option><option value="openai">OpenAI</option><option value="gemini">Gemini</option><option value="openrouter">OpenRouter</option><option value="ollama">Ollama</option><option value="custom">Custom</option></select></div>
+              <div><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Model</label><select id="settingsModel" class="sf-input"><option value="claude-sonnet-4-6">Claude Sonnet 4.6</option><option value="claude-haiku-4-5">Claude Haiku 4.5</option><option value="gpt-4o-mini">GPT-4o mini</option><option value="gpt-4o">GPT-4o</option><option value="gemini-2.0-flash">Gemini 2.0 Flash</option><option value="meta-llama/llama-3.1-8b-instruct:free">OpenRouter Llama 3.1</option></select></div>
+            </div>
+            <div style="margin-top:10px"><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">API key</label><input id="settingsApiKey" class="sf-input" type="password" value="${escapeAttr(state.apiKey)}" /></div>
+            <div style="margin-top:10px;display:${state.provider === 'custom' ? 'block' : 'none'}" id="settingsEndpointWrap"><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px">Custom endpoint</label><input id="settingsEndpoint" class="sf-input" value="${escapeAttr(state.endpoint || '')}" placeholder="https://..." /></div>
+            <button class="btn primary" type="button" id="saveSettingsBtn" style="margin-top:14px">Save settings</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('settingsProvider').value = state.provider;
+      document.getElementById('settingsModel').value = state.model || PROVIDERS[state.provider]?.model || 'gpt-4o-mini';
+      document.getElementById('settingsProvider').addEventListener('change', () => {
+        state.provider = document.getElementById('settingsProvider').value;
+        document.getElementById('settingsEndpointWrap').style.display = state.provider === 'custom' ? 'block' : 'none';
+        state.model = state.model || PROVIDERS[state.provider]?.model || 'gpt-4o-mini';
+        document.getElementById('settingsModel').value = state.model;
+      });
+      document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+        state.name = document.getElementById('profileName').value.trim() || 'Student';
+        state.apiKey = document.getElementById('settingsApiKey').value.trim();
+        state.model = document.getElementById('settingsModel').value;
+        state.provider = document.getElementById('settingsProvider').value;
+        state.endpoint = document.getElementById('settingsEndpoint')?.value.trim() || PROVIDERS[state.provider]?.endpoint || '';
+        persist();
+        renderSidebar();
+        renderSettings();
+        showToast('Settings updated');
+      });
+    }
+
+    function renderMarkdown(text) {
+      return marked.parse(String(text || ''));
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replace(/`/g, '&#96;');
+    }
+
+    function escapeMarkdown(str) {
+      return String(str).replace(/`/g, '\\`');
+    }
+
+    function priorityColor(priority) {
+      if (priority === 'high') return 'var(--red)';
+      if (priority === 'low') return 'var(--green)';
+      return 'var(--amber)';
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function createNewChat() {
+      const chat = { id: makeId(), title: 'New conversation', messages: [{ role: 'assistant', text: 'Hi! Ask me anything.' }] };
+      state.chats.unshift(chat);
+      state.activeChatId = chat.id;
+      persist();
+      renderSidebar();
+      renderChatPage();
+    }
+
+    function exportActiveChat() {
+      const chat = getActiveChat();
+      if (!chat) return;
+      const text = chat.messages.map(m => `${m.role === 'user' ? 'You' : 'Nova'}:\n${m.text}`).join('\n\n---\n\n');
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'nova-chat.txt'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('newChatBtn').addEventListener('click', createNewChat);
+    document.getElementById('providerSelect').addEventListener('change', () => {
+      state.provider = document.getElementById('providerSelect').value;
+      state.endpoint = PROVIDERS[state.provider]?.endpoint || '';
+      state.model = PROVIDERS[state.provider]?.model || state.model || 'gpt-4o-mini';
+      persist();
+      renderSidebar();
+    });
+    document.getElementById('apiKeyInput').addEventListener('input', () => {
+      state.apiKey = document.getElementById('apiKeyInput').value.trim();
+      persist();
+      renderSidebar();
+    });
+    document.getElementById('endpointInput').addEventListener('input', () => {
+      state.endpoint = document.getElementById('endpointInput').value.trim();
+      persist();
+    });
+    document.getElementById('modelSelect').addEventListener('change', () => {
+      state.model = document.getElementById('modelSelect').value;
+      persist();
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      const chat = getActiveChat();
+      if (chat) chat.messages = [];
+      persist();
+      renderChatPage();
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportActiveChat);
+
+    document.addEventListener('click', event => {
+      const rail = event.target.closest('.rail-btn');
+      if (rail) setPage(rail.dataset.page);
+      const sidebarItem = event.target.closest('.sb-item');
+      if (sidebarItem) setPage(sidebarItem.dataset.page);
+      const chatItem = event.target.closest('.chat-item');
+      if (chatItem) {
+        const id = chatItem.dataset.id;
+        if (event.target.closest('.close')) {
+          event.stopPropagation();
+          state.chats = state.chats.filter(c => c.id !== id);
+          if (!state.chats.length) return createNewChat();
+          state.activeChatId = state.chats[0].id;
+          persist();
+          renderSidebar();
+          renderChatPage();
+          return;
+        }
+        state.activeChatId = id;
+        persist();
+        renderSidebar();
+        renderChatPage();
+      }
+    });
+
+    renderSidebar();
+    renderTopbar();
+    renderContent();
+  </script>
+</body>
+</html>
